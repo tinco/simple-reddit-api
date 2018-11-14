@@ -3,6 +3,7 @@ require 'sinatra'
 require 'redd/middleware'
 require 'fileutils'
 require 'json'
+require 'pry'
 
 FileUtils.mkdir_p 'tmp'
 SESSION_FILE = "tmp/reddit_session"
@@ -67,8 +68,29 @@ get '/auth/reddit/callback' do
   "Error: #{request.env['redd.error'].message} (<a href='/'>Back</a>)"
 end
 
-get '/new' do
-  reddit.subreddit('all').new.to_json
+get '/r/:subreddit/new' do
+  opts = {}
+  opts[:count] = params[:count].to_i if params[:count]
+  opts[:after] = params[:after].to_s if params[:after]
+  opts[:limit] = params[:limit].to_s if params[:limit]
+  subreddit = params[:subreddit].to_s
+  response = reddit.subreddit(params[:subreddit]).new(opts)
+  response.map do |r|
+    {
+      title: r.title,
+      subreddit: r.subreddit_name_prefixed,
+#      preview: r.preview,
+      permalink: r.permalink,
+      url: r.url,
+      created: r.created,
+      fullname: r.name,
+      downvotes: r.downs,
+      upvotes: r.ups,
+      score: r.score,
+      gildings: r.gildings,
+      over_18: r.over_18
+    }.to_json
+  end
 end
 
 get '/logout' do
